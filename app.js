@@ -2,6 +2,7 @@ var express = require('express');
 var bodyParser = require('body-parser');
 var cors = require('cors');
 var routes = require('./routes');
+const conectarBD = require('./db');
 
 // Objeto global de la app
 var app = express();
@@ -10,6 +11,8 @@ var app = express();
 app.use(cors());
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
+//Conexión a base datos
+conectarBD();
 
 // Agregamos el código de nuestro router (routes/index.js)
 app.use('/api/v1', routes);
@@ -18,7 +21,7 @@ app.use('/api/v1', routes);
 app.use(function(req, res, next) {
   var err = new Error('Not Found');
   err.status = 404;
-  next(err);
+  res.send(err);
 });
 
 // Iniciando el servidor...
