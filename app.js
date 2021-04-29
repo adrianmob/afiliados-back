@@ -2,7 +2,7 @@ var express = require('express');
 var bodyParser = require('body-parser');
 var cors = require('cors');
 var routes = require('./routes');
-const conectarBD = require('./db');
+const {conectarBD} = require('./db');
 
 // Objeto global de la app
 var app = express();

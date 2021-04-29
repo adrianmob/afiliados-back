@@ -15,4 +15,4 @@ let conectarBD = async () => {
     }
 }
 
-module.exports = conectarBD;
+module.exports = {conectarBD, db};
