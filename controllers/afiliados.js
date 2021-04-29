@@ -1,3 +1,4 @@
+const bcrypt = require('bcryptjs');
 const Afiliado = require('../models/Afiliado');
 
 let obtenerAfiliados = async (req, res, next) => {
@@ -27,6 +28,8 @@ let crearAfiliado = async (req, res, next) => {
         //Verifica que no exista un email en la BD
         if(existeEmail){ return res.status(400).send('Ya existe un usuario con el correo ' + body.email)}
         //Cifrar contraseña
+        const salt = bcrypt.genSaltSync();
+        body.password = bcrypt.hashSync(body.password, salt);
         //Generar enlace
         //Guarda el usuario Afiliado
         const afiliado = new Afiliado(body);
@@ -36,7 +39,6 @@ let crearAfiliado = async (req, res, next) => {
         console.log(error);
         res.status(500).send('Error del sistema, intente de nuevo o comuníquese con un asesor');
     }
-    res.status(201).send(body);
 }
 
 module.exports = {
