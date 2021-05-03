@@ -12,6 +12,15 @@ let crearAfiliado = async (req, res, next) => {
     if(!body.nombre || !body.apellidoPaterno || !body.telefono || !body.email || !body.password){
         return res.status(400).send('Los datos del usuario deben estar completos');
     }
+    //Verificar que el correo y el teléfono correspondan al formato
+    let numTel = Number(body.telefono);
+    if(body.telefono.length < 10 || Object.is(numTel, NaN)){
+        return res.status(400).send('El campo teléfono debe ser un número y tener al menos 10 dígitos');
+    }
+    let expReg = /^[a-zA-Z0-9.!#$%&’*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*$/;
+    if(!expReg.test(String(body.email).toLowerCase())){
+        return res.status(400).send('El campo email debe ser un correo válido');
+    }
     try {
         const existeTelefono = await Afiliado.findOne({
             where : {
@@ -34,6 +43,7 @@ let crearAfiliado = async (req, res, next) => {
         //Guarda el usuario Afiliado
         const afiliado = new Afiliado(body);
         await afiliado.save();
+        //Generar token
         res.status(201).send(afiliado);
     } catch (error) {
         console.log(error);
