@@ -1,10 +1,13 @@
 const bcrypt = require('bcryptjs');
+const generarJWT = require('../helpers/generar-jwt');
 const Afiliado = require('../models/Afiliado');
 
 let obtenerAfiliados = async (req, res, next) => {
     const afiliados = await Afiliado.findAll();
     res.status(200).send(afiliados);
 }
+
+let obtenerAfiliado = (req, res, next) =>{}
 
 let crearAfiliado = async (req, res, next) => {
     let {body} = req;
@@ -40,16 +43,23 @@ let crearAfiliado = async (req, res, next) => {
         const salt = bcrypt.genSaltSync();
         body.password = bcrypt.hashSync(body.password, salt);
         //Generar enlace
+
         //Guarda el usuario Afiliado
         const afiliado = new Afiliado(body);
         await afiliado.save();
         //Generar token
-        res.status(201).send(afiliado);
+        console.log(afiliado.dataValues.email);
+        const token = await generarJWT(afiliado.dataValues.email);
+        res.status(201).send({afiliado, token});
     } catch (error) {
         console.log(error);
         res.status(500).send('Error del sistema, intente de nuevo o comuníquese con un asesor');
     }
 }
+
+let modificarAfiliado = (req, res, next) =>{}
+
+let eliminarAfiliado = (req, res, next) =>{}
 
 module.exports = {
     obtenerAfiliados,
