@@ -1,5 +1,7 @@
 const bcrypt = require('bcryptjs');
+const { Op } = require("sequelize");
 const generarJWT = require('../helpers/generar-jwt');
+const subirIamgen = require('../helpers/subir-imagen');
 const Afiliado = require('../models/Afiliado');
 
 let obtenerAfiliados = async (req, res, next) => {
@@ -48,9 +50,11 @@ let crearAfiliado = async (req, res, next) => {
         const afiliado = new Afiliado(body);
         await afiliado.save();
         //Generar token
-        console.log(afiliado.dataValues.email);
         const token = await generarJWT(afiliado.dataValues.email);
-        res.status(201).send({afiliado, token});
+        //Genera firma de la imagen
+        let postImagen = subirIamgen(body.public_id);
+        //Se envían los datos al usuario
+        res.status(201).send({afiliado, token, postImagen});
     } catch (error) {
         console.log(error);
         res.status(500).send('Error del sistema, intente de nuevo o comuníquese con un asesor');
