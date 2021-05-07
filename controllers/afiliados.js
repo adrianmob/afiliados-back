@@ -8,7 +8,7 @@ let obtenerAfiliados = async (req, res, next) => {
     res.status(200).send(afiliados);
 }
 
-let obtenerAfiliado = async (req, res, next) =>{
+let obtenerAfiliado = async (req, res, next) => {
     let {id} = req.params;
     const usuario = await Afiliado.findByPk(id);
     if (!usuario) {
@@ -48,7 +48,14 @@ let crearAfiliado = async (req, res, next) => {
             }
         });
         //Verifica que no exista un email en la BD
-        if(existeEmail){ return res.status(400).send('Ya existe un usuario con el correo ' + body.email)}
+        if(existeEmail){ 
+            return res.status(400).json({
+                error:{
+                    msg:'Ya existe un usuario con este correo',
+                    campo: body.email
+                }
+            });
+        }
         //Cifrar contraseña
         const salt = bcrypt.genSaltSync();
         body.password = bcrypt.hashSync(body.password, salt);
@@ -69,7 +76,7 @@ let crearAfiliado = async (req, res, next) => {
     }
 }
 
-let modificarAfiliado = async (req, res, next) =>{
+let modificarAfiliado = async (req, res, next) => {
     let {id} = req.params;
     let {body} = req;
     try {
@@ -121,7 +128,7 @@ let modificarAfiliado = async (req, res, next) =>{
 }
 
 //Función que elimina un usuario, se tiene que verificar
-let eliminarAfiliado = async (req, res, next) =>{
+let eliminarAfiliado = async (req, res, next) => {
     let {id} = req.params;
     const usuario = await Afiliado.findByPk(id);
     if (!usuario) {
@@ -134,9 +141,49 @@ let eliminarAfiliado = async (req, res, next) =>{
     res.status(200).send(`Usuario ${id} eliminado`);
 }
 
+//Login
+let iniciarSesion = async (req, res, next) => {
+    if (!req.body.email) {
+        return res.status(422).json({
+            error: {
+                msg:"El campo de correo no puede estar vacío"
+            }
+        });
+    }
+    if (!req.body.password) {
+        return res.status(422).json({
+            error: {
+                msg:"El campo de contraseña no puede estar vacío"
+            }
+        });
+    }
+    const {email, password} = req.body;
+    //Verifica usuario
+    const afiliado = await Afiliado.findOne({where:{email}});
+    if (!afiliado){
+        return res.status(400).json({
+            error: "Usuario o contraseña incorrectos"
+        });
+    }
+    //Verifica clave
+    const claveValida = bcrypt.compareSync(password, afiliado.dataValues.password);
+    if(!claveValida) {
+        return res.status(400).json({
+            error: "Usuario o clave incorrectos"
+        });
+    }
+    //Genera token
+    const token = await generarJWT(afiliado.dataValues.email);
+    res.json({
+        'usuario validado':afiliado,
+        token
+    });
+}
+
 module.exports = {
     obtenerAfiliados,
     obtenerAfiliado,
     crearAfiliado,
-    modificarAfiliado
+    modificarAfiliado,
+    iniciarSesion
 }
