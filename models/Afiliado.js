@@ -22,7 +22,22 @@ const Afiliado = db.define('Afiliado', {
     },
     enlace : {
         type : DataTypes.STRING
+    },
+    urlImagen : {
+        type : DataTypes.STRING
     }
 });
+
+// publicData = () => {
+//     return {
+//         nombre = Afiliado.nombre,
+//         apellidoPaterno = Afiliado.apellidoPaterno,
+//         apellidoMaterno = Afiliado.apellidoPaterno,
+//         telefono = Afiliado.telefono,
+//         email = Afiliado.email,
+//         enlace = Afiliado.enlace,
+//         urlImagen = Afiliado.urlImagen
+//     }
+// }
 
 module.exports = Afiliado;

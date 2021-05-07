@@ -1,36 +1,69 @@
 const bcrypt = require('bcryptjs');
 const generarJWT = require('../helpers/generar-jwt');
-const subirIamgen = require('../helpers/subir-imagen');
 const Afiliado = require('../models/Afiliado');
 
 let obtenerAfiliados = async (req, res, next) => {
-    const afiliados = await Afiliado.findAll();
-    res.status(200).send(afiliados);
+    try {
+        const afiliados = await Afiliado.findAll();
+        res.status(200).send(afiliados);
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({
+            error : {
+                msg : 'Error del sistema, intente de nuevo más tarde o comuníquese con un asesor'
+            }
+        });
+    }
 }
 
 let obtenerAfiliado = async (req, res, next) => {
     let {id} = req.params;
-    const usuario = await Afiliado.findByPk(id);
-    if (!usuario) {
-        return res.status(404).send('Usuario no encontrado');
-    } 
-    res.status(200).send(usuario);
+    try {
+        const usuario = await Afiliado.findByPk(id);
+        if(!usuario) {
+            return res.status(404).json({
+                error : {
+                    msg : 'Usuario no encontrado'
+                }
+            });
+        }
+        res.status(200).send(usuario);   
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({
+            error : {
+                msg : 'Error del sistema, intente de nuevo más tarde o comuníquese con un asesor'
+            }
+        });
+    }
 }
 
 let crearAfiliado = async (req, res, next) => {
     let {body} = req;
     //Verifica que los datos necesarios vengan en la petición
-    if(!body.nombre || !body.apellidoPaterno || !body.telefono || !body.email || !body.password){
-        return res.status(400).send('Los datos del usuario deben estar completos');
+    if(!body.nombre || !body.apellidoPaterno || !body.telefono || !body.email || !body.password || !body.urlImagen){
+        return res.status(400).json({
+            error : {
+                msg : 'Los datos del usuario deben estar completos'
+            }
+        });
     }
     //Verificar que el correo y el teléfono correspondan al formato
     let numTel = Number(body.telefono);
     if(body.telefono.length < 10 || Object.is(numTel, NaN)){
-        return res.status(400).send('El campo teléfono debe ser un número y tener al menos 10 dígitos');
+        return res.status(400).json({
+            error : {
+                msg : 'El campo teléfono debe ser un número y tener al menos 10 dígitos'
+            }
+        })
     }
     let expReg = /^[a-zA-Z0-9.!#$%&’*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*$/;
     if(!expReg.test(String(body.email).toLowerCase())){
-        return res.status(400).send('El campo email debe ser un correo válido');
+        return res.status(400).json({
+            error : {
+                msg : 'El campo email debe ser un correo válido'
+            }
+        });
     }
     try {
         //Busca el campo de teléfono en BD
@@ -40,7 +73,14 @@ let crearAfiliado = async (req, res, next) => {
             }
         });
         //Verifica que no exista un teléfono en la BD
-        if(existeTelefono){ return res.status(400).send('Ya existe un usuario con el telefono ' + body.telefono)}
+        if(existeTelefono){ 
+            return res.status(400).json({
+                error: {
+                    msg : 'Ya existe un usuario con este telefono',
+                    campo : body.telefono
+                }
+            });
+        }
         //Busca el campo de Email en BD
         const existeEmail = await Afiliado.findOne({
             where : {
@@ -66,13 +106,15 @@ let crearAfiliado = async (req, res, next) => {
         await afiliado.save();
         //Generar token
         const token = await generarJWT(afiliado.dataValues.email);
-        //Genera firma de la imagen
-        let postImagen = subirIamgen(body.public_id);
         //Se envían los datos al usuario
-        res.status(201).send({afiliado, token, postImagen});
+        res.status(201).send({afiliado, token});
     } catch (error) {
         console.log(error);
-        res.status(500).send('Error del sistema, intente de nuevo más tarde o comuníquese con un asesor');
+        res.status(500).json({
+            error : {
+                msg : 'Error del sistema, intente de nuevo más tarde o comuníquese con un asesor'
+            }
+        });
     }
 }
 
@@ -82,7 +124,12 @@ let modificarAfiliado = async (req, res, next) => {
     try {
         const afiliado = await Afiliado.findByPk(id);
         if (!afiliado) {
-            return res.status(404).send('No existe el usuario con el id: ' + id);
+            return res.status(404).json({
+                error : {
+                    msg : 'No existe un usuario con este id',
+                    campo : id
+                }
+            });
         }
         if(body.telefono){
             //Busca el campo de teléfono en BD
@@ -92,7 +139,14 @@ let modificarAfiliado = async (req, res, next) => {
                 }
             });
             //Verifica que no exista un teléfono en la BD
-            if(existeTelefono){ return res.status(400).send('Ya existe un usuario con el telefono ' + body.telefono)}
+            if(existeTelefono){ 
+                return res.status(400).json({
+                    error:{
+                        msg : 'Ya existe un usuario con este telefono', 
+                        campo : body.telefono
+                    }
+                });
+            }
         }
         if(body.email){
             //Busca el campo de Email en BD
@@ -102,7 +156,14 @@ let modificarAfiliado = async (req, res, next) => {
                 }
             });
             //Verifica que no exista un email en la BD
-            if(existeEmail){ return res.status(400).send('Ya existe un usuario con el correo ' + body.email)}
+            if(existeEmail){ 
+                return res.status(400).json({
+                    error : {
+                        msg : 'Ya existe un usuario con este correo',
+                        campo : body.email
+                    }
+                });
+            }
         }
         if(body.password){
             //Cifrar contraseña
@@ -123,7 +184,11 @@ let modificarAfiliado = async (req, res, next) => {
         res.status(201).send(postImagen ? {afiliado, token, postImagen} : {afiliado, token});
     } catch (error) {
         console.log(error);
-        res.status(500).send('Error del sistema, intente de nuevo más tarde o comuníquese con un asesor');
+        res.status(500).json({
+            error : {
+                msg : 'Error del sistema, intente de nuevo más tarde o comuníquese con un asesor'
+            }
+        });
     }
 }
 
@@ -145,39 +210,52 @@ let eliminarAfiliado = async (req, res, next) => {
 let iniciarSesion = async (req, res, next) => {
     if (!req.body.email) {
         return res.status(422).json({
-            error: {
-                msg:"El campo de correo no puede estar vacío"
+            error : {
+                msg : "El campo de correo no puede estar vacío"
             }
         });
     }
     if (!req.body.password) {
         return res.status(422).json({
-            error: {
-                msg:"El campo de contraseña no puede estar vacío"
+            error : {
+                msg : "El campo de contraseña no puede estar vacío"
             }
         });
     }
     const {email, password} = req.body;
-    //Verifica usuario
-    const afiliado = await Afiliado.findOne({where:{email}});
-    if (!afiliado){
-        return res.status(400).json({
-            error: "Usuario o contraseña incorrectos"
+    try {
+        //Verifica usuario
+        const afiliado = await Afiliado.findOne({where:{email}});
+        if (!afiliado){
+            return res.status(400).json({
+                error : {
+                    msg : "Usuario o contraseña incorrectos"
+                }
+            });
+        }
+        //Verifica clave
+        const claveValida = bcrypt.compareSync(password, afiliado.dataValues.password);
+        if(!claveValida) {
+            return res.status(400).json({
+                error : {
+                    msg : "Usuario o clave incorrectos"
+                }
+            });
+        }
+        //Genera token
+        const token = await generarJWT(afiliado.dataValues.email);
+        res.json({
+            'usuario validado' : afiliado,
+            token
+        });
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({
+            error : {
+                msg : 'Error del sistema, intente de nuevo más tarde o comuníquese con un asesor'
+            }
         });
     }
-    //Verifica clave
-    const claveValida = bcrypt.compareSync(password, afiliado.dataValues.password);
-    if(!claveValida) {
-        return res.status(400).json({
-            error: "Usuario o clave incorrectos"
-        });
-    }
-    //Genera token
-    const token = await generarJWT(afiliado.dataValues.email);
-    res.json({
-        'usuario validado':afiliado,
-        token
-    });
 }
 
 module.exports = {
