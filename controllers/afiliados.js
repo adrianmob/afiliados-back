@@ -170,18 +170,12 @@ let modificarAfiliado = async (req, res, next) => {
             const salt = bcrypt.genSaltSync();
             body.password = bcrypt.hashSync(body.password, salt);
         }
-        let postImagen=null;
-        if(body.public_id){
-            //Genera firma de la imagen
-            postImagen = subirIamgen(body.public_id);
-
-        }
         //Actualiza el usuario Afiliado
         await afiliado.update(body);
         //Generar token
         const token = await generarJWT(afiliado.dataValues.email);
         //Se envían los datos al usuario
-        res.status(201).send(postImagen ? {afiliado, token, postImagen} : {afiliado, token});
+        res.status(201).send({afiliado, token});
     } catch (error) {
         console.log(error);
         res.status(500).json({
